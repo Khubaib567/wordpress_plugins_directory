@@ -72,6 +72,12 @@ jQuery(document).ready(function ($) {
                     // list += `<li style="padding:8px; cursor:pointer;">${response.data}</li>`;
 
                     $('#pickup-suggestions').html(list).show();
+
+                    // reset AFTER a small delay
+                    setTimeout(() => {
+                            isSelecting = true;
+                      }, 200);
+
                 }
             }
         });
@@ -124,8 +130,6 @@ jQuery(document).ready(function ($) {
 
     drawRouteIfReady();
 
-
-
     });
 
 
@@ -168,6 +172,12 @@ jQuery(document).ready(function ($) {
                     // list += `<li style="padding:8px; cursor:pointer;">${response.data}</li>`;
 
                     $('#dropoff-suggestions').html(list).show();
+
+
+                     // reset AFTER a small delay
+                    setTimeout(() => {
+                            isSelecting = true;
+                      }, 200);
                 }
             }
         });
