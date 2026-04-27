@@ -5,9 +5,13 @@
 
 add_action('init', function () {
     register_post_type('custom_tab', [
-        'label' => 'Custom Tabs',
-        'public' => true,
-        'supports' => ['title', 'editor'],
+        'label'        => 'Custom Tabs',
+        'public'       => true,
+        'has_archive'  => true, // 👈 enables archive page
+        'rewrite'      => [
+            'slug' => 'custom-tab', // 👈 cleaner URL
+        ],
+        'supports'     => ['title', 'editor'],
     ]);
 });
 
