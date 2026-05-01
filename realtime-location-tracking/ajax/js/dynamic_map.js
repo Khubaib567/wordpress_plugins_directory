@@ -3,10 +3,42 @@ jQuery(document).ready(function ($) {
 
     let map = L.map('map').setView([51.505, -0.09], 5);
 
-    let isSelecting = false;
+    let isSelecting = true;
     let pickupPoint = null;
     let dropoffPoint = null;
+    let pickupName = '';
+    let dropoffName = '';
     let markerPickup, markerDropoff, line;
+
+
+    // 📏 Haversine Distance (KM)
+    function getDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) *
+            Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c;
+    }
+
+    // ⏱️ Duration (based on avg speed)
+    function getDuration(distanceKm, speed = 60) {
+        const time = distanceKm / speed;
+
+        const hours = Math.floor(time);
+        const minutes = Math.round((time - hours) * 60);
+
+        return `${hours}h ${minutes}m`;
+    }
 
 
     function drawRouteIfReady() {
@@ -27,6 +59,41 @@ jQuery(document).ready(function ($) {
 
         // 🔍 Fit both points
         map.fitBounds(line.getBounds());
+
+        // ================================
+        // ✅ CALCULATE DISTANCE + DURATION
+        // ================================
+        let distance = getDistance(
+            pickupPoint[0],
+            pickupPoint[1],
+            dropoffPoint[0],
+            dropoffPoint[1]
+        );
+
+         let duration = getDuration(distance, 60);
+
+        let distanceText = distance.toFixed(2) + " km";
+
+         // ================================
+        // ✅ UPDATE EACH POPUP SEPARATELY
+        // ================================
+
+        if (markerPickup) {
+            markerPickup.setPopupContent(`
+                <b>Pickup:</b> ${pickupName} <br>
+                📏 Distance: ${distanceText} <br>
+                ⏱ Duration: ${duration}
+            `).openPopup();
+        }
+
+        if (markerDropoff) {
+            markerDropoff.setPopupContent(`
+                <b>Dropoff:</b> ${dropoffName} <br>
+                📏 Distance: ${distanceText} <br>
+                ⏱ Duration: ${duration}
+            `).openPopup();
+        }
+
     }
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -38,7 +105,7 @@ jQuery(document).ready(function ($) {
 
         e.preventDefault();
 
-        if (isSelecting) return; // ⛔ prevent re-trigger
+        if (!isSelecting) return; // ⛔ prevent re-trigger
 
         let query = $(this).val();
         // console.log(query);
@@ -73,10 +140,6 @@ jQuery(document).ready(function ($) {
 
                     $('#pickup-suggestions').html(list).show();
 
-                    // reset AFTER a small delay
-                    setTimeout(() => {
-                            isSelecting = true;
-                      }, 200);
 
                 }
             }
@@ -93,6 +156,7 @@ jQuery(document).ready(function ($) {
     isSelecting = true; // ⛔ block keyup
 
     let name = $(this).text();
+    pickupName = name; // ✅ store it
     let lat = parseFloat($(this).data('lat'));
     let lng = parseFloat($(this).data('lng'));
 
@@ -113,6 +177,7 @@ jQuery(document).ready(function ($) {
     if (isNaN(lat) || isNaN(lng)) return;
 
     pickupPoint = [lat, lng];
+    // console.log("pickup: " , pickupPoint)
 
     // 📍 Move map
     map.setView(pickupPoint, 8);
@@ -124,11 +189,24 @@ jQuery(document).ready(function ($) {
 
     markerPickup = L.marker(pickupPoint)
         .addTo(map)
-        .bindPopup("Pickup: " + name)
+        .bindTooltip("Pickup Location", {
+            permanent: true,
+            direction: "top"
+        })
+        .bindPopup("Pickup: " + name, {
+            autoClose: false,
+            closeOnClick: false
+        })
         .openPopup();
 
 
     drawRouteIfReady();
+
+     // reset AFTER a small delay
+    setTimeout(() => {
+        isSelecting = true;
+    }, 200);
+
 
     });
 
@@ -138,7 +216,7 @@ jQuery(document).ready(function ($) {
 
         e.preventDefault();
 
-        if (isSelecting) return; // ⛔ prevent re-trigger
+        if (!isSelecting) return; // ⛔ prevent re-trigger
 
         let query = $(this).val();
         // console.log(query);
@@ -173,11 +251,6 @@ jQuery(document).ready(function ($) {
 
                     $('#dropoff-suggestions').html(list).show();
 
-
-                     // reset AFTER a small delay
-                    setTimeout(() => {
-                            isSelecting = true;
-                      }, 200);
                 }
             }
         });
@@ -193,6 +266,7 @@ jQuery(document).ready(function ($) {
     isSelecting = true; // ⛔ block keyup
     
     let name = $(this).text();
+    dropoffName = name; // ✅ store it
     let lat = parseFloat($(this).data('lat'));
     let lng = parseFloat($(this).data('lng'));
 
@@ -207,6 +281,7 @@ jQuery(document).ready(function ($) {
     if (isNaN(lat) || isNaN(lng)) return;
 
     dropoffPoint = [lat, lng];
+    // console.log("drop-off: " , dropoffPoint)
 
     // 📍 Remove old dropoff marker
     if (markerDropoff) {
@@ -215,11 +290,23 @@ jQuery(document).ready(function ($) {
 
     markerDropoff = L.marker(dropoffPoint)
         .addTo(map)
-        .bindPopup("Dropoff: " + name)
+        .bindTooltip("Pickup Location", {
+            permanent: true,
+            direction: "top"
+        })
+        .bindPopup("Pickup: " + name, {
+            autoClose: false,
+            closeOnClick: false
+        })
         .openPopup();
 
-        drawRouteIfReady();
-    });
+    drawRouteIfReady();
+
+    // reset AFTER a small delay
+    setTimeout(() => {
+            isSelecting = true;
+    }, 200);
+});
 
 });
 
